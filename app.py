@@ -10,12 +10,37 @@ import re
 from aeneid.utils import webutils as wu
 from aeneid.dbservices.DataExceptions import DataException
 from flask import Response
+from urllib.parse import urlencode
 
 # Default delimiter to delineate primary key fields in string.
 key_delimiter = "_"
 
 
 app = Flask(__name__)
+
+def compute_links(result, limit, offset):
+    
+    result['links'] = []
+
+    self = {"rel":"self","href":request.url}
+    result['links'].append(self)
+
+    next_offset = int(offset) + int(limit) 
+
+    base = request.base_url 
+    args = {}
+    for k,v in request.args.items():
+        if not k=='offset':
+            args[k]=v
+        else:
+            args[k]=next_offset
+    
+    params = urlencode(args)
+    self = {"rel":"next","href":base + "?" + params}
+    result['links'].append(self)
+
+
+    return result
 
 
 @app.route('/')
@@ -124,7 +149,7 @@ def api():
     return 'You probably want to call an API on one of the resources.'
 
 
-@app.route('/api/<dbname>/<resource_name>/<primary_key>')
+@app.route('/api/<dbname>/<resource_name>/<primary_key>',methods=['GET','PUT','DELETE','UPDATE','POST'])
 def handle_resource(dbname, resource_name, primary_key):
 
     resp = Response("Internal server error", status=500, mimetype="text/plain")
@@ -138,60 +163,105 @@ def handle_resource(dbname, resource_name, primary_key):
         # This should probably occur in the data service and not here.
         resource = dbname + "." + resource_name
 
-        # Look for the fields=f1,f2, ... argument in the query parameters.
-        field_list = request.args.get('fields', None)
-        if field_list is not None:
-            field_list = field_list.split(",")
+        if request.method == 'GET':
+            # Look for the fields=f1,f2, ... argument in the query parameters.
+            field_list = request.args.get('fields', None)
+            if field_list is not None:
+                field_list = field_list.split(",")
+            # Call the data service layer.
+            result = ds.get_by_primary_key(resource, key_columns, field_list=field_list)
+            if result:
+                # We managed to find a row. Return JSON data and 200
+                result_data = json.dumps(result, default=str)
+                resp = Response(result_data, status=200, mimetype='application/json')
+            else:
+                resp = Response("NOT FOUND", status=404, mimetype='text/plain')
 
-        # Call the data service layer.
-        result = ds.get_by_primary_key(resource, key_columns, field_list=field_list)
+       
+        elif request.method == 'DELETE':
+            result = ds.delete(resource,key_columns)
+            if result and result >= 1:
+                resp = Response("OK", status=200, mimetype='text/plain')
+            else:
+                resp = Response("NOT FOUND", status=404, mimetype='text/plain')
+       
+        #@TODO DO THIS UPDATE ROW BASED ON KEY
+        elif request.method =='UPDATE':
+            new_r = request.get_json()
+            result = ds.create(resource, new_r)
+            if result and result == 1:
+                resp = Response("CREATED",status=201,mimetype="text/plain")
 
-        if result:
-            # We managed to find a row. Return JSON data and 200
-            result_data = json.dumps(result, default=str)
-            resp = Response(result_data, status=200, mimetype='application/json')
-        else:
-            # We did not get an exception and we did not get data, therefore this is 404 not found.
-            resp = Response("Not found", status=404, mimetype="text/plain")
+        #@TODO DO THIS - CREATE A ROW BASED ON KEY
+        elif request.method =='POST':
+            new_r = request.get_json()
+            result = ds.create(resource, new_r)
+            if result and result == 1:
+                resp = Response("CREATED",status=201,mimetype="text/plain")
+
+        else: 
+            result = Response("I am a teapot that will not PUT", status=422,mimetype="text/plain")
+            return result 
+
     except Exception as e:
         # We need a better overall approach to generating correct errors.
         utils.debug_message("Something awlful happened, e = ", e)
 
     return resp
 
-@app.route('/api/<dbname>/<resource_name>')
+@app.route('/api/<dbname>/<resource_name>',methods=['GET','POST','UPDATE'])
 def handle_collection(dbname, resource_name):
 
     resp = Response("Internal server error", status=500, mimetype="text/plain")
 
     try:
-
-        # Form the compound resource names dbschema.table_name
         resource = dbname + "." + resource_name
 
-        # Get the field list if it exists.
-        field_list = request.args.get('fields', None)
-        if field_list is not None:
-            field_list = field_list.split(",")
+        if request.method == 'GET':
+            # Form the compound resource names dbschema.table_name
+            
 
-        # The query string is of the form ?f1=v1&f2=v2& ...
-        # This maps to a query template of the form { "f1" : "v1", ... }
-        # We need to ignore the fields parameters.
-        tmp = None
-        for k,v in request.args.items():
-            if not k == 'fields':
-                if tmp is None:
-                    tmp = {}
-                tmp[k] = v
+            # Get the field list if it exists.
+            field_list = request.args.get('fields', None)
+            if field_list is not None:
+                field_list = field_list.split(",")
 
-        # Find by template.
-        result = ds.get_by_template(resource, tmp, field_list=field_list)
+            # for queries of type 127.0.0.1:5000/api/lahman2017/batting?teamID=BOS&limit=10
+            limit = min(int(request.args.get('limit',10)),10)
+            offset = request.args.get('offset',10)
+            order_by = request.args.get('order_by', None)
 
-        if result:
-            result_data = json.dumps(result, default=str)
-            resp = Response(result_data, status=200, mimetype='application/json')
-        else:
-            resp = Response("Not found", status=404, mimetype="text/plain")
+            # The query string is of the form ?f1=v1&f2=v2& ...
+            # This maps to a query template of the form { "f1" : "v1", ... }
+            # We need to ignore the fields parameters.
+            tmp = None
+            for k,v in request.args.items():
+                if (not k == 'fields') and (not k == 'limit') and (not k=='offset') and (not k == 'order_by'):
+                    if tmp is None:
+                        tmp = {}
+                    tmp[k] = v
+
+
+
+            # Find by template
+            result = ds.get_by_template(resource, tmp, field_list=field_list, limit=limit, offset=offset,order_by = order_by)
+            
+            if result:
+                result = {"data": result}
+                result = compute_links(result, limit, offset)
+                result_data = json.dumps(result, default=str)
+                resp = Response(result_data, status=200, mimetype='application/json')
+            else:
+                resp = Response("Not found", status=404, mimetype="text/plain")
+        
+        elif request.method =='POST':
+            new_r = request.get_json()
+            result = ds.create(resource, new_r)
+            if result and result == 1:
+                resp = Response("CREATED",status=201,mimetype="text/plain")
+
+
+    
     except Exception as e:
         utils.debug_message("Something awlful happened, e = ", e)
 

@@ -23,7 +23,64 @@ class RDBDataTable(BaseDataTable):
         'port': 3306
     }
 
-    def __init__(self, table_name, key_columns=None, connect_info=None, debug=True):
+    def debug_message(self, *m):
+        """
+        Prints some debug information if self._debug is True
+        :param m: List of things to print.
+        :return: None
+        """
+        if self._debug:
+            print(" *** DEBUG:", *m)
+    
+    def _get_keys(self):
+        t_name = self._table_name
+        actual_keys = self._run_q("SHOW KEYS FROM " + t_name + " WHERE Key_name = 'PRIMARY'")
+        actual_key_columns = [i['Column_name'] for i in actual_keys]
+        return actual_key_columns
+
+    def _check_connection(self):
+        out = self._run_q("Select 'something'")
+        if out != [{'something': 'something'}]:
+            raise ValueError('Invalid Connection String')
+        
+        
+    def _check_keys_init(self, keys=None):
+        ###check if the keys inputted by user is valid
+        if keys is None:
+            key_check = self._key_columns
+        else:
+            key_check = keys
+        actual_key_columns = self._get_keys()
+        if (actual_key_columns!=key_check):
+            raise ValueError("You entered the wrong keys please try "+ ', '.join(str(p) for p in actual_key_columns)) 
+            
+    def _check_keys_query(self, keys=None):
+        ###check if the keys inputted by user is valid
+        actual_keys =  self._key_columns
+        if keys is None:
+            if not actual_keys is None:
+                raise ValueError("You entered the wrong keys please try "+ ', '.join(str(p) for p in actual_keys)) 
+        else: 
+            if actual_keys is None:
+                raise ValueError("Key column not initiated, you can't query by the keys")
+            else:
+                if len(actual_keys) != len(keys):
+                    raise ValueError("You entered wrong length keys, please try "+ ', '.join(str(p) for p in actual_keys)) 
+    
+    def _get_fields(self):
+        t_name = self._table_name
+        actual = self._run_q("DESCRIBE " + t_name)
+        out = [i['Field'] for i in actual]
+        return out
+    
+    def _check_fields(self,fields):
+        actual_fields = self._get_fields()
+        for i in fields:
+            if (not i in actual_fields):
+                raise ValueError("Field "+ i+ " does not exist")
+        
+
+    def __init__(self, table_name, key_columns, connect_info=None, debug=True):
         """
 
         :param table_name: The name of the RDB table.
@@ -33,6 +90,7 @@ class RDBDataTable(BaseDataTable):
 
         # Initialize and store information in the parent class.
         super().__init__(table_name, connect_info, key_columns, debug)
+        
 
         # If there is not explicit connect information, use the defaults.
         if connect_info is None:
@@ -47,25 +105,17 @@ class RDBDataTable(BaseDataTable):
             db=self._connect_info['db'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor)
-
-        self._key_columns = self._get_primary_key_columns()
-
-    def debug_message(self, *m):
-        """
-        Prints some debug information if self._debug is True
-        :param m: List of things to print.
-        :return: None
-        """
-        if self._debug:
-            print(" *** DEBUG:", *m)
-
+        
+        self._check_connection()
+        self._check_keys_init(key_columns)
+        self.debug = debug
+        
     def __str__(self):
         """
 
-        :return: String representation of the data table.
-        """
+                :return: String representation of the data table.
+                """
         result = "RDBDataTable: table_name = " + self._table_name
-        result += "\nTable type = " + str(type(self))
         result += "\nKey fields: " + str(self._key_columns)
 
         # Find out how many rows are in the table.
@@ -108,23 +158,24 @@ class RDBDataTable(BaseDataTable):
 
         # If debugging is turned on, will print the query sent to the database.
         self.debug_message("Query = ", cursor.mogrify(q, args))
-
-        r = cursor.execute(q, args)  # Execute the query.
+        
+        num = cursor.execute(q, args)  # Execute the query.
 
         # Technically, INSERT, UPDATE and DELETE do not return results.
         # Sometimes the connector libraries return the number of created/deleted rows.
         if fetch:
             r = cursor.fetchall()  # Return all elements of the result.
         else:
-            # r = None
-            pass
+            r = num
 
-        if commit:  # Do not worry about this for now.
+        if commit:                  # Do not worry about this for now.
             cnx.commit()
-
+        
+        
+        
         return r
 
-    def _run_insert(self, table_name, column_list, values_list, cnx=None, commit=False):
+    def _run_insert(self, table_name, column_list, values_list, cnx=None, commit=True):
         """
 
         :param table_name: Name of the table to insert data. Probably should just get from the object data.
@@ -151,22 +202,12 @@ class RDBDataTable(BaseDataTable):
 
             # Put all together.
             q += values
-
-            self._run_q(q, args=values_list, fields=None, fetch=False, cnx=cnx, commit=True)
+            
+            return self._run_q(q, args=values_list, fields=None, fetch=False, cnx=cnx, commit=commit)
 
         except Exception as e:
             print("Got exception = ", e)
             raise e
-
-    def _get_primary_key_columns(self):
-        """
-
-        :return: The names of the primary key columns in the form ['col1', ..., 'coln']
-
-        The current implementation just returns the list of keys passed in the constructor.
-        An extended implementation would/should query database data/metadata to get the information.
-        """
-        return self._key_columns
 
     def find_by_primary_key(self, key_fields, field_list=None):
         """
@@ -176,28 +217,17 @@ class RDBDataTable(BaseDataTable):
         :return: None, or a dictionary containing the request fields for the record identified
             by the key.
         """
+        # Your implementation goes here.
+        try:
+            self._check_keys_query(key_fields)
+            key_columns = self._get_keys()            
+            template =  dict(zip(key_columns, key_fields))
+            return self.find_by_template(template, field_list=field_list, limit=None, offset=None, order_by=None, commit=True)
 
-        # Get the key_columns specified on table create.
-        key_columns = self._get_primary_key_columns()
-
-        # Zipping together key_columns and passed fields produces a valid template
-        tmp = dict(zip(key_columns, key_fields))
-
-        # Call find_by_template. This returns a DerivedDataTable.
-        result = self.find_by_template(tmp, field_list)
-
-        # For various reasons, we do not return a DerivedDataTable for find_by_primary_key().
-        # We return the single row. This follows REST semantics.
-        if result is not None:
-            result = result.get_rows()
-
-            if result is not None and len(result) > 0:
-                result = result[0]
-            else:
-                result = None
-
-        return result
-
+        except Exception as e:
+            print("Got exception = ", e)
+            raise e
+               
     def _template_to_where_clause(self, t):
         """
         Convert a query template into a WHERE clause.
@@ -224,25 +254,7 @@ class RDBDataTable(BaseDataTable):
 
         return w_clause, args
 
-    def _project(self, rows, field_list):
-        return rows
-        pass
-        '''
-        result = []
-
-        if field_list is None:
-            result = rows
-        else:
-            for r in rows:
-                new_r = {f: r[f] for f in field_list}
-                result.append(new_r)
-
-        return result
-        '''
-
-    def find_by_template(self, template, field_list=None, limit=None,
-                         offset=None, order_by=None, follow_paths=False,
-                         commit=True):
+    def find_by_template(self, template, field_list=None, limit=None, offset=None, order_by=None, commit=True):
         """
 
         :param template: A dictionary of the form { "field1" : value1, "field2": value2, ...}
@@ -253,7 +265,6 @@ class RDBDataTable(BaseDataTable):
         :return: A list containing dictionaries. A dictionary is in the list representing each record
             that matches the template. The dictionary only contains the requested fields.
         """
-
         result = None
 
         try:
@@ -266,18 +277,20 @@ class RDBDataTable(BaseDataTable):
             else:
                 f_select = field_list
 
+           # ext = self._get_extra(limit,offset,order_by)
             # Query template.
             # _run_q will use args for %s terms and will format the field selection into {}
-            q = "select {} from " + self._table_name + " " + w_clause[0]
+            q = "select {} from " + self._table_name + " " + w_clause[0] 
+            #" " + ext
 
+            if order_by:
+                q += " order by " + str(order_by)
             if limit:
                 q += " limit " + str(limit)
             if offset:
                 q += " offset " + str(offset)
 
-            result = self._run_q(q, args=w_clause[1], fields=f_select, fetch=True, commit=commit)
-
-            result = self._project(result, field_list)
+            result = self._run_q(q, args=w_clause[1], fields=f_select, fetch=True, commit=commit)            
 
             # SELECT queries always produce tables.
             result = DerivedDataTable("SELECT(" + self._table_name + ")", result)
@@ -288,6 +301,21 @@ class RDBDataTable(BaseDataTable):
 
         return result
 
+
+    def insert(self, new_record):
+        """
+
+        :param new_record: A dictionary representing a row to add to the set of records.
+        :return: None
+        """
+        try:
+            c_list = list(new_record.keys())
+            v_list = list(new_record.values())
+            return self._run_insert(self._table_name, c_list, v_list)
+        except Exception as e:
+            print("insert: Exception e = ", e)
+            raise(e)
+
     def delete_by_template(self, template):
         """
 
@@ -296,39 +324,128 @@ class RDBDataTable(BaseDataTable):
         :param template: A template.
         :return: A count of the rows deleted.
         """
-        raise NotImplementedError("Student must implement.")
+        t_name = self._table_name             
+                               
+        try:
+            
+            w_clause, args_ = self._template_to_where_clause(template)
+            q = "DELETE FROM " + t_name + " " + w_clause
+            nums = self._run_q(q, args=args_, fields=None, fetch=False, cnx=None, commit=True)
+
+        except Exception as e:
+            print("Got exception = ", e)
+            raise e
+        
+        
+        return nums
 
     def delete_by_key(self, key_fields):
-        raise NotImplementedError("Student must implement.")
-
-    def insert(self, new_record):
         """
 
-        :param new_record: A dictionary representing a row to add to the set of records.
-        :return: None
+        Delete record with corresponding key.
+
+        :param key_fields: List containing the values for the key columns
+        :return: A count of the rows deleted.
         """
-        # Get the list of columns.
-        column_list = list(new_record.keys())
+        t_name = self._table_name  
+        
+                               
+        try:
+            
+            if self._key_columns is None:
+                keys = self._run_q("SHOW KEYS FROM " + t_name + " WHERE Key_name = 'PRIMARY'")
+                key_columns = [i['Column_name'] for i in keys]     
+            else: 
+                key_columns = self._key_columns 
+            
+            if len(key_columns) != len(key_fields):
+                raise KeyError('Wrong Length Keys')
+            
+            # Beginning part of the SQL statement.
+            template =  dict(zip(key_columns, key_fields))
+            return self.delete_by_template(template)
 
-        # Get corresponding list of values.
-        value_list = list(new_record.values())
+        except Exception as e:
+            print("Got exception = ", e)
+            raise e
+    
+    def _template_to_update_clause(self, t):
+        """
+        Convert a query template into a WHERE clause.
+        :param t: Query template.
+        :return: (WHERE clause, arg values for %s in clause)
+        """
+        terms = []
+        args = []
+        u_clause = ""
 
-        # Name of table.
-        t_name = self._table_name
+        # The where clause will be of the for col1=%s, col2=%s, ...
+        # Build a list containing the individual col1=%s
+        # The args passed to +run_q will be the values in the template in the same order.
+        for k, v in t.items():
+            temp_s = k + "=%s "
+            terms.append(temp_s)
+            args.append(v)
 
-        # Perform insert.
-        self._run_insert(t_name, column_list, value_list)
+        if len(terms) > 0:
+            u_clause = " SET " + " , ".join(terms)
+        else:
+            u_clause = ""
+            args = None
 
+        return u_clause, args
+    
     def update_by_template(self, template, new_values):
         """
 
         :param template: A template that defines which matching rows to update.
         :param new_values: A dictionary containing fields and the values to set for the corresponding fields
-            in the records.
+            in the records. This returns an error if the update would create a duplicate primary key. NO ROWS are
+            update on this error.
         :return: The number of rows updates.
         """
-        raise NotImplementedError("Student must implement.")
+        t_name = self._table_name             
+                               
+        try:
+            
+            w_clause, args_w = self._template_to_where_clause(template)
+            u_clause, args_u = self._template_to_update_clause(new_values)
+            args_ = args_u+args_w
+            q = "UPDATE " + t_name + " " + u_clause +" "+ w_clause
+            return self._run_q(q, args= args_, fields=None, fetch=False, cnx=None, commit=True)
+
+        except Exception as e:
+            print("Got exception = ", e)
+            raise e
+        
 
     def update_by_key(self, key_fields, new_values):
-        raise NotImplementedError("Student must implement.")
+        """
+
+        :param key_fields: List of values for primary key fields
+        :param new_values: A dictionary containing fields and the values to set for the corresponding fields
+            in the records. This returns an error if the update would create a duplicate primary key. NO ROWS are
+            update on this error.
+        :return: The number of rows updates.
+        """
+        t_name = self._table_name   
+   
+        try:
+            
+            if self._key_columns is None:
+                keys = self._run_q("SHOW KEYS FROM " + t_name + " WHERE Key_name = 'PRIMARY'")
+                key_columns = [i['Column_name'] for i in keys]     
+            else: 
+                key_columns = self._key_columns 
+            
+            if len(key_columns) != len(key_fields):
+                raise KeyError('Wrong Length Keys')
+
+            # Beginning part of the SQL statement.
+            template =  dict(zip(key_columns, key_fields))
+            self.update_by_template(template, new_values)       
+
+        except Exception as e:
+            print("Got exception = ", e)
+            raise e
 

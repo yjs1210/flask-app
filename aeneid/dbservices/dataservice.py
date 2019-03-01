@@ -62,7 +62,15 @@ def get_by_primary_key(table_name, key_fields, field_list=None, commit=True):
 
 
 
+def create(table_name, new_value):
+    dt = get_data_table(table_name)
+    result = dt.insert(new_value)
+    return result
 
+def delete(table_name, key_cols):
+    dt = get_data_table(table_name)
+    result = dt.delete_by_key(key_cols)
+    return result 
 
 
 
