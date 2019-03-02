@@ -47,12 +47,12 @@ class RDBDataTable(BaseDataTable):
     def _check_keys_init(self, keys=None):
         ###check if the keys inputted by user is valid
         if keys is None:
-            key_check = self._key_columns
+            self._key_columns = self._get_keys()
         else:
             key_check = keys
-        actual_key_columns = self._get_keys()
-        if (actual_key_columns!=key_check):
-            raise ValueError("You entered the wrong keys please try "+ ', '.join(str(p) for p in actual_key_columns)) 
+            actual_key_columns = self._get_keys()
+            if (actual_key_columns!=key_check):
+                raise ValueError("You entered the wrong keys please try "+ ', '.join(str(p) for p in actual_key_columns)) 
             
     def _check_keys_query(self, keys=None):
         ###check if the keys inputted by user is valid
@@ -80,7 +80,7 @@ class RDBDataTable(BaseDataTable):
                 raise ValueError("Field "+ i+ " does not exist")
         
 
-    def __init__(self, table_name, key_columns, connect_info=None, debug=True):
+    def __init__(self, table_name, key_columns =None, connect_info=None, debug=True):
         """
 
         :param table_name: The name of the RDB table.
@@ -254,7 +254,7 @@ class RDBDataTable(BaseDataTable):
 
         return w_clause, args
 
-    def find_by_template(self, template, field_list=None, limit=None, offset=None, order_by=None, commit=True):
+    def find_by_template(self, template, field_list=None, limit=None, offset=None, order_by=None, commit=True,children = None):
         """
 
         :param template: A dictionary of the form { "field1" : value1, "field2": value2, ...}
@@ -280,7 +280,24 @@ class RDBDataTable(BaseDataTable):
            # ext = self._get_extra(limit,offset,order_by)
             # Query template.
             # _run_q will use args for %s terms and will format the field selection into {}
-            q = "select {} from " + self._table_name + " " + w_clause[0] 
+            if children:
+                q = "Select {} from " + self._table_name 
+                childrens = children.split(',')
+                foreign_keys = []
+                for idx,child in enumerate(childrens):
+                    schema_table = child.split('.')
+                    if len(schema_table ==1):
+                        schema = self._connect_info['db']
+                        table = schema_table[0]
+                    else:
+                        schema = schema_table[0]
+                        table = schema_table[1]
+                    foreign_keys[idx] = self.get_join_column_mapping(schema,table)
+                    q+= "as " + self._table_name+ " LEFT JOIN " + child + " on " + \
+                        self._table_name + "." 
+
+            else:
+                q = "select {} from " + self._table_name + " " + w_clause[0] 
             #" " + ext
 
             if order_by:
@@ -443,9 +460,56 @@ class RDBDataTable(BaseDataTable):
 
             # Beginning part of the SQL statement.
             template =  dict(zip(key_columns, key_fields))
-            self.update_by_template(template, new_values)       
+            return self.update_by_template(template, new_values)       
 
         except Exception as e:
             print("Got exception = ", e)
             raise e
+    
+    def get_join_column_mapping(self, schema2, table2):
+
+        q = """
+            SELECT
+            TABLE_NAME,
+            COLUMN_NAME,
+            CONSTRAINT_NAME,
+            REFERENCED_TABLE_NAME,
+            REFERENCED_COLUMN_NAME
+            FROM
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE
+            (REFERENCED_TABLE_SCHEMA = %s AND REFERENCED_TABLE_NAME = %s
+            AND TABLE_SCHEMA = %s AND TABLE_NAME = %s)
+            OR
+            (REFERENCED_TABLE_SCHEMA = %s AND REFERENCED_TABLE_NAME = %s
+            AND TABLE_SCHEMA = %s AND TABLE_NAME = %s)
+            
+        """
+        table_name = self._table_name
+        schema_table = table_name.split('.')
+        schema1 = schema_table[0]
+        table1 = schema_table[1] 
+
+        args_= (schema1, table1, schema2, table2, schema2, table2, schema1, table1)
+        constraints =self._run_q(q, args= args_, fields=None, fetch=True, cnx=None, commit=True)
+        result = {}
+
+        for c in constraints:
+
+            n = c['CONSTRAINT_NAME']
+            e = result.get(n, None)
+
+            if e is None:
+                e = {}
+                e['CONSTRAINT_NAME'] = n
+                e['MAP'] = []
+                result[n] = e
+
+            this_m = {k:c[k] for k in ['TABLE_NAME', 'COLUMN_NAME',
+                                    'REFERENCED_TABLE_NAME', 'REFERENCED_COLUMN_NAME']}
+            e['MAP'].append(this_m)
+
+        return result
+
+
 

@@ -11,8 +11,16 @@ def test_create():
     tbl = RDBDataTable("people")
     print("test_create:tbl =",tbl)
     print("HELLO")
-test_create()
 
+def test_mapping():
+    tbl = RDBDataTable("lahman2017.people",['playerID'])
+    print("test_create:tbl =",tbl)
+    out = tbl.get_join_column_mapping('lahman2017','appearances')
+    print(out)
+    print("HELLO")
+
+#test_create()
+test_mapping()
 
 
 

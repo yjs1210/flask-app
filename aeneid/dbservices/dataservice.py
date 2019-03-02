@@ -48,17 +48,17 @@ def get_data_table(table_name):
 
     return result
 
-def get_by_template(table_name, template, field_list=None, limit=None, offset=None, order_by=None, commit=True):
+def get_by_template(table_name, template,field_list=None, limit=None, offset=None, order_by=None, commit=True,children = None ):
 
     dt = get_data_table(table_name)
-    result = dt.find_by_template(template, field_list, limit, offset, order_by, commit)
+    result = dt.find_by_template(template, field_list, limit, offset, order_by, commit,children)
     return result.get_rows()
 
 def get_by_primary_key(table_name, key_fields, field_list=None, commit=True):
 
     dt = get_data_table(table_name)
     result = dt.find_by_primary_key(key_fields, field_list)
-    return result
+    return result.get_rows()
 
 
 
@@ -67,9 +67,19 @@ def create(table_name, new_value):
     result = dt.insert(new_value)
     return result
 
-def delete(table_name, key_cols):
+def delete_by_key(table_name, key_cols):
     dt = get_data_table(table_name)
     result = dt.delete_by_key(key_cols)
+    return result 
+
+def update_by_key(table_name, key_fields, new_value):
+    dt = get_data_table(table_name)
+    result = dt.update_by_key(key_fields,new_value)
+    return result
+
+def get_key(table_name):
+    dt = get_data_table(table_name)
+    result = dt._get_keys
     return result 
 
 
