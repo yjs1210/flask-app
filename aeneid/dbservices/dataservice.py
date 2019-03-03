@@ -60,11 +60,22 @@ def get_by_primary_key(table_name, key_fields, field_list=None, commit=True):
     result = dt.find_by_primary_key(key_fields, field_list)
     return result.get_rows()
 
+def get_primary_key_columns(table_name):
 
+    dt = get_data_table(table_name)
+    result = dt._get_keys()
+    return result
 
 def create(table_name, new_value):
-    dt = get_data_table(table_name)
-    result = dt.insert(new_value)
+    result = None
+    try:
+        dt = get_data_table(table_name) 
+        result = dt.insert(new_value)
+    except Exception as e:
+        print("Got exception = ", e)
+        raise e
+        #map_e = DataTableException(None,None,e)
+        #raise map_e
     return result
 
 def delete_by_key(table_name, key_cols):
@@ -83,6 +94,13 @@ def get_key(table_name):
     return result 
 
 
+def get_foreign_key(table_name,subresource):
+    schema_table1 = table_name.split('.')
+    dt = get_data_table(table_name)
+    schema1, table1 = dt._get_schmma_table(table_name)
+    schema2, table2 = dt._get_schema_table(subresource)
+    result = dt.get_join_column_mapping(schema1,table1,schema2,table2)
+    return result 
 
 
 

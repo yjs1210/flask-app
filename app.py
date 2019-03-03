@@ -24,27 +24,27 @@ def compute_links(result, limit, offset):
 
     self = {"rel":"self","href":request.url}
     result['links'].append(self)
+    if not len(result['data'])<10:
+        next_offset = int(offset) + int(limit) 
 
-    next_offset = int(offset) + int(limit) 
-
-    base = request.base_url 
-    args = {}
-    
-    if request.args.get('offset',None) is None:
-        for k,v in request.args.items():
-            args[k]=v
-        args['offset'] = next_offset
-
-    else:
-        for k,v in request.args.items():
-            if not k=='offset':
+        base = request.base_url 
+        args = {}
+        
+        if request.args.get('offset',None) is None:
+            for k,v in request.args.items():
                 args[k]=v
-            else:
-                args[k]=next_offset
-    
-    params = urlencode(args)
-    self = {"rel":"next","href":base + "?" + params}
-    result['links'].append(self)
+            args['offset'] = next_offset
+
+        else:
+            for k,v in request.args.items():
+                if not k=='offset':
+                    args[k]=v
+                else:
+                    args[k]=next_offset
+        
+        params = urlencode(args)
+        self = {"rel":"next","href":base + "?" + params}
+        result['links'].append(self)
 
     if (not offset is None) & (int(offset)>=10):
         prev_offset = min(int(offset) - int(limit),0) 
@@ -210,19 +210,6 @@ def handle_resource(dbname, resource_name, primary_key):
             check = ds.get_by_primary_key(resource, key_columns)
             ###Create if result is None
             if check is None:
-                ###?? SHOULD WE CREATE IF NOT FOUND??  
-                '''
-                key = ds.get_key(resource)
-                if request.args.get('offset',None) is None:
-                    for k,v in request.args.items():
-                        args[k]=v
-                    args['offset'] = next_offset
-
-                new_r = request.get_json()
-                result = ds.create(resource, new_r)
-                if result and result == 1:
-                    resp = Response("CREATED",status=201,mimetype="text/plain")
-                '''
                 resp = Response("NOT FOUND",status=404,mimetype="text/plain")
             ###Update if result is not None
             else:    
@@ -241,7 +228,72 @@ def handle_resource(dbname, resource_name, primary_key):
 
     return resp
 
-@app.route('/api/<dbname>/<resource_name>',methods=['GET','POST','UPDATE'])
+@app.route('/api/<dbname>/<resource_name>/<primary_key>/<subresource_name>',methods=['GET','POST'])
+def handle_collection(dbname, resource_name,primary_key,subresource_name):
+
+    resp = Response("Internal server error", status=500, mimetype="text/plain")
+
+    try:
+        resource = dbname + "." + resource_name
+
+        if request.method == 'GET':
+            # Form the compound resource names dbschema.table_name
+            
+
+            # Get the field list if it exists.
+            field_list = request.args.get('fields', None)
+            if field_list is not None:
+                field_list = field_list.split(",")
+
+            # for queries of type 127.0.0.1:5000/api/lahman2017/batting?teamID=BOS&limit=10
+            limit = min(int(request.args.get('limit',10)),10)
+            offset = request.args.get('offset',0)
+            order_by = request.args.get('order_by', None)
+            children = request.args.get('children', None)
+
+            # The query string is of the form ?f1=v1&f2=v2& ...
+            # This maps to a query template of the form { "f1" : "v1", ... }
+            # We need to ignore the fields parameters.
+            tmp = None
+            for k,v in request.args.items():
+                if (not k == 'fields') and (not k == 'limit') and (not k=='offset') and \
+                    (not k == 'order_by') and (not k == 'children'):
+                    if tmp is None:
+                        tmp = {}
+                    tmp[k] = v
+            
+            # Find by template
+            result = ds.get_by_template(resource, tmp, field_list=field_list, limit=limit, offset=offset,order_by = order_by,children = children)
+            
+            if result:
+                result = {"data": result}
+                result = compute_links(result, limit, offset)
+                result_data = json.dumps(result, default=str)
+                resp = Response(result_data, status=200, mimetype='application/json')
+            else:
+                resp = Response("Not found", status=404, mimetype="text/plain")
+        
+        elif request.method =='POST':
+            new_r = request.get_json()
+            foreign_key = ds.get_foreign_key
+            for k,v in foreign_key.items():
+                name = v['COLUMN NAME']
+            ####Might need to handle multiple keys here
+            k=result = ds.create(resource, new_r)
+            if k:
+                location = get_location(dbname, resource_name, k )
+                resp = Response("CREATED",status=201,mimetype="text/plain")
+                resp.headers['Location'] = location
+
+    except Exception as e:
+        resp = Response(e, status=500, mimetype="text/plain")
+        utils.debug_message("Something awlful happened, e = ", e)
+
+    return resp
+
+    
+
+@app.route('/api/<dbname>/<resource_name>',methods=['GET','POST'])
 def handle_collection(dbname, resource_name):
 
     resp = Response("Internal server error", status=500, mimetype="text/plain")
@@ -288,18 +340,24 @@ def handle_collection(dbname, resource_name):
         
         elif request.method =='POST':
             new_r = request.get_json()
-            result = ds.create(resource, new_r)
-            if result and result == 1:
+            k=result = ds.create(resource, new_r)
+
+            if k:
+                location = get_location(dbname, resource_name, k )
                 resp = Response("CREATED",status=201,mimetype="text/plain")
+                resp.headers['Location'] = location
 
-
-    
     except Exception as e:
+        resp = Response(e, status=500, mimetype="text/plain")
         utils.debug_message("Something awlful happened, e = ", e)
 
     return resp
 
-
+def get_location(db_name, resource_name ,k):
+    ks = [str(kk) for kk in k.values()]
+    ks = "_".join(ks)
+    result = "/api" + db_name + "/" +resource_name + "/" + ks
+    return result 
 
 if __name__ == '__main__':
     app.run()
