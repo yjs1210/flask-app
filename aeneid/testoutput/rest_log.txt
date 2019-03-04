@@ -1,4 +1,0 @@
-test
-here
-Result = 
-Internal server error

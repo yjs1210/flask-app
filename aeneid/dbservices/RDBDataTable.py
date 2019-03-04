@@ -1,3 +1,4 @@
+##James Lee - jl5241
 from aeneid.dbservices.BaseDataTable import BaseDataTable
 from aeneid.dbservices.DerivedDataTable import DerivedDataTable
 import aeneid.dbservices.dataservice as ds
@@ -268,7 +269,7 @@ class RDBDataTable(BaseDataTable):
 
         return w_clause, args
 
-    def _get_schema_table(table):
+    def _get_schema_table(self, table):
         schema_table = table.split('.')
         if len(schema_table) ==1:
             schema = self._connect_info['db']
@@ -278,7 +279,7 @@ class RDBDataTable(BaseDataTable):
             table = schema_table[1] 
         return schema, table
 
-    def find_by_template(self, template, field_list=None, limit=None, offset=None, order_by=None, commit=True,children = None):
+    def find_by_template(self, template, field_list=None, limit=None, offset=None, order_by=None, commit=True,children = None,helper=False):
         """
 
         :param template: A dictionary of the form { "field1" : value1, "field2": value2, ...}
@@ -305,28 +306,25 @@ class RDBDataTable(BaseDataTable):
             # Query template.
             # _run_q will use args for %s terms and will format the field selection into {}
             if children:
-                table_name = self._table_name
-                schema_table = table_name.split('.')
-                if len(schema_table) ==1:
-                    schema1 = self._connect_info['db']
-                    table1 = schema_table[0]
-                else:
-                    schema1 = schema_table[0]
-                    table1 = schema_table[1] 
+                schema1, table1= self._get_schema_table(self._table_name)
+                schema2, table2 = self._get_schema_table(children)
+                schema_table1 = schema1+'.'+table1
+                schema_table2 = schema2+'.'+table2
+                q = "Select {} from " + schema_table1 +" JOIN " + schema_table2 + " " + w_clause[0]
                 
-                schema_table1 = schema1+ "." + table1
-
-                q = "Select {} from " + schema_table1 +" as " + schema_table1
-
+                
+                foreign_key = ds.get_foreign_key(schema_table1,schema_table2)
+                for k,v in foreign_key.items():
+                    map = v['MAP'][0]
+                    check_in_field = map['REFERENCED_COLUMN_NAME']
+                    if table1+"."+check_in_field not in field_list:
+                        field_list.append(table_name.split('.') + '.'+check_in_field)
+                    q +=  " AND " + schema_table1 + "." + map['REFERENCED_COLUMN_NAME'] + " = " + schema_table2 + "."+ map['COLUMN_NAME']
+                
+                '''
                 childrens = children.split(',')
                 for idx,child in enumerate(childrens):
-                    schema_table = child.split('.')
-                    if len(schema_table) ==1:
-                        schema2 = self._connect_info['db']
-                        table2 = schema_table[0]
-                    else:
-                        schema2 = schema_table[0]
-                        table2 = schema_table[1]
+                    schema2, table 2= dt._get_schema_table(child)
                         
                     schema_table2 = schema2+ "." + table2
                     q += " LEFT JOIN " + schema_table2 + " as "+schema_table2+ " ON " 
@@ -338,18 +336,19 @@ class RDBDataTable(BaseDataTable):
                             q+= schema_table1 + "." + mapping['REFERENCED_COLUMN_NAME'] + '=' + schema_table2 + "." + mapping['COLUMN_NAME']
                         else: 
                             q+= " and " + schema_table1 + "." + mapping['REFERENCED_COLUMN_NAME'] + '=' + schema_table2 + "." + mapping['COLUMN_NAME']
-                     
+                     '''
 
             else:
                 q = "select {} from " + self._table_name + " " + w_clause[0] 
             #" " + ext
 
-            if order_by:
-                q += " order by " + str(order_by)
-            if limit:
-                q += " limit " + str(limit)
-            if offset:
-                q += " offset " + str(offset)
+            if(not helper):
+                if order_by:
+                    q += " order by " + str(order_by)
+                if limit:
+                    q += " limit " + str(limit)
+                if offset:
+                    q += " offset " + str(offset)
 
             result = self._run_q(q, args=w_clause[1], fields=f_select, fetch=True, commit=commit)            
 
@@ -359,7 +358,7 @@ class RDBDataTable(BaseDataTable):
         except Exception as e:
             print("Exception e = ", e)
             raise e
-
+    
         return result
 
 
@@ -373,11 +372,11 @@ class RDBDataTable(BaseDataTable):
             c_list = list(new_record.keys())
             v_list = list(new_record.values())
             (cnt, rid) = self._run_insert(self._table_name, c_list, v_list)
-            if rid:
-                raise ValueError("Please include the primary key")
+            #if rid:
+            #    raise ValueError("Please include the primary key")
                 ###result={self._auto_increment_column:rid}
-            else:
-                result = self.get_primary_key_value(new_record)
+            #else:
+            result = self.get_primary_key_value(new_record)
             
             return result 
         except Exception as e:

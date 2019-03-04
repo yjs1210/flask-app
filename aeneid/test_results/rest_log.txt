@@ -1,0 +1,874 @@
+##James Lee - jl5241
+
+************************************************************
+
+************PLEASE NOTE THAT I HAD TO DROP SOME ROWS TO GET FOREIGN KEY WORKING**************
+
+************************************************************
+
+*************TEST ONE API CONNECTION TEST**************
+URL GIVEN =http://127.0.0.1:5000/
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "text/html; charset=utf-8",
+  "Content-Length": "216",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:47 GMT"
+}
+Text body: 
+ 
+            You probably want to go either to the content home page or call an API at /api.
+            When you despair during completing the homework, remember that
+            Audentes fortuna iuvat.
+            
+*************TEST TWO GET BY RESOURCE/TEMPLATE TEST**************
+Select playerID, nameLast, nameFirst from   lahman2017.players     where nameLast = Williams 
+URL GIVEN =http://127.0.0.1:5000/api/lahman2017/people?nameLast=Williams&fields=playerID%2C+nameLast%2C+nameFirst
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "1021",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:47 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "playerID": "williac01",
+      "nameLast": "Williams",
+      "nameFirst": "Ace"
+    },
+    {
+      "playerID": "willial02",
+      "nameLast": "Williams",
+      "nameFirst": "Al"
+    },
+    {
+      "playerID": "willial03",
+      "nameLast": "Williams",
+      "nameFirst": "Albert"
+    },
+    {
+      "playerID": "willibe01",
+      "nameLast": "Williams",
+      "nameFirst": "Bernie"
+    },
+    {
+      "playerID": "willibe02",
+      "nameLast": "Williams",
+      "nameFirst": "Bernie"
+    },
+    {
+      "playerID": "willibi01",
+      "nameLast": "Williams",
+      "nameFirst": "Billy"
+    },
+    {
+      "playerID": "willibi02",
+      "nameLast": "Williams",
+      "nameFirst": "Billy"
+    },
+    {
+      "playerID": "willibo01",
+      "nameLast": "Williams",
+      "nameFirst": "Bob"
+    },
+    {
+      "playerID": "willibr01",
+      "nameLast": "Williams",
+      "nameFirst": "Brian"
+    },
+    {
+      "playerID": "willich01",
+      "nameLast": "Williams",
+      "nameFirst": "Charlie"
+    }
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://127.0.0.1:5000/api/lahman2017/people?nameLast=Williams&fields=playerID%2C+nameLast%2C+nameFirst"
+    },
+    {
+      "rel": "next",
+      "href": "http://127.0.0.1:5000/api/lahman2017/people?nameLast=Williams&fields=playerID%2C+nameLast%2C+nameFirst&offset=10"
+    }
+  ]
+}
+*************TEST THREE ORDER BY**************
+URL GIVEN =http://127.0.0.1:5000/api/lahman2017/batting?teamID=BOS&limit=10&offset=10&fields=playerID,yearID,H,AB,RBI&order_by=yearID
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "1188",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:47 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "playerID": "cremibo01",
+      "yearID": 1927,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "bushefr01",
+      "yearID": 1927,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "bennefr01",
+      "yearID": 1928,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "sheajo01",
+      "yearID": 1928,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "klinebo01",
+      "yearID": 1930,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "mulrofr01",
+      "yearID": 1930,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "murphwa01",
+      "yearID": 1931,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "mclauju01",
+      "yearID": 1931,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "mclauju01",
+      "yearID": 1933,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    },
+    {
+      "playerID": "meolami01",
+      "yearID": 1933,
+      "H": 0,
+      "AB": 0,
+      "RBI": 0
+    }
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://127.0.0.1:5000/api/lahman2017/batting?teamID=BOS&limit=10&offset=10&fields=playerID,yearID,H,AB,RBI&order_by=yearID"
+    },
+    {
+      "rel": "next",
+      "href": "http://127.0.0.1:5000/api/lahman2017/batting?teamID=BOS&limit=10&offset=20&fields=playerID%2CyearID%2CH%2CAB%2CRBI&order_by=yearID"
+    },
+    {
+      "rel": "prev",
+      "href": "http://127.0.0.1:5000/api/lahman2017/batting?teamID=BOS&limit=10&offset=0&fields=playerID%2CyearID%2CH%2CAB%2CRBI&order_by=yearID"
+    }
+  ]
+}
+*************TEST FOUR GET BY PRIMARY KEY TEST SAME AS HW DOCUMENTATION **************
+GET G_all and GS BY COMPOUND KEY willite01_BOS_1960
+URL GIVEN =http://127.0.0.1:5000/api/lahman2017/appearances/willite01_BOS_1960?fields=G_all,GS
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "36",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:47 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "G_all": 113,
+      "GS": 87
+    }
+  ]
+}
+*************TEST FIVE COMPELX QUERY TEST SAME RESULT AS PIAZZA **************
+Result = 
+URL GIVEN =http://127.0.0.1:5000/api/lahman2017/people?children=appearances,batting&fields=people.playerID,people.nameLast,people.nameFirst,people.birthCity,batting.teamID,batting.yearID,batting.H,batting.HR,batting.RBI,appearances.G_all,appearances.teamID,appearances.yearID&people.nameLast=Williams&people.birthCity=San%20Diego
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "3048",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:47 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "people": {
+        "playerID": "willite01",
+        "nameLast": "Williams",
+        "nameFirst": "Ted",
+        "birthCity": "San Diego"
+      },
+      "appearances": [
+        {
+          "G_all": 149,
+          "teamID": "BOS",
+          "yearID": 1939
+        },
+        {
+          "G_all": 144,
+          "teamID": "BOS",
+          "yearID": 1940
+        },
+        {
+          "G_all": 143,
+          "teamID": "BOS",
+          "yearID": 1941
+        },
+        {
+          "G_all": 150,
+          "teamID": "BOS",
+          "yearID": 1942
+        },
+        {
+          "G_all": 150,
+          "teamID": "BOS",
+          "yearID": 1946
+        },
+        {
+          "G_all": 156,
+          "teamID": "BOS",
+          "yearID": 1947
+        },
+        {
+          "G_all": 137,
+          "teamID": "BOS",
+          "yearID": 1948
+        },
+        {
+          "G_all": 155,
+          "teamID": "BOS",
+          "yearID": 1949
+        },
+        {
+          "G_all": 89,
+          "teamID": "BOS",
+          "yearID": 1950
+        },
+        {
+          "G_all": 148,
+          "teamID": "BOS",
+          "yearID": 1951
+        },
+        {
+          "G_all": 6,
+          "teamID": "BOS",
+          "yearID": 1952
+        },
+        {
+          "G_all": 37,
+          "teamID": "BOS",
+          "yearID": 1953
+        },
+        {
+          "G_all": 117,
+          "teamID": "BOS",
+          "yearID": 1954
+        },
+        {
+          "G_all": 98,
+          "teamID": "BOS",
+          "yearID": 1955
+        },
+        {
+          "G_all": 136,
+          "teamID": "BOS",
+          "yearID": 1956
+        },
+        {
+          "G_all": 132,
+          "teamID": "BOS",
+          "yearID": 1957
+        },
+        {
+          "G_all": 129,
+          "teamID": "BOS",
+          "yearID": 1958
+        },
+        {
+          "G_all": 103,
+          "teamID": "BOS",
+          "yearID": 1959
+        },
+        {
+          "G_all": 113,
+          "teamID": "BOS",
+          "yearID": 1960
+        }
+      ],
+      "batting": [
+        {
+          "teamID": "BOS",
+          "yearID": 1939,
+          "H": 185,
+          "HR": 31,
+          "RBI": 145
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1940,
+          "H": 193,
+          "HR": 23,
+          "RBI": 113
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1941,
+          "H": 185,
+          "HR": 37,
+          "RBI": 120
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1942,
+          "H": 186,
+          "HR": 36,
+          "RBI": 137
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1946,
+          "H": 176,
+          "HR": 38,
+          "RBI": 123
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1947,
+          "H": 181,
+          "HR": 32,
+          "RBI": 114
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1948,
+          "H": 188,
+          "HR": 25,
+          "RBI": 127
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1949,
+          "H": 194,
+          "HR": 43,
+          "RBI": 159
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1950,
+          "H": 106,
+          "HR": 28,
+          "RBI": 97
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1951,
+          "H": 169,
+          "HR": 30,
+          "RBI": 126
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1952,
+          "H": 4,
+          "HR": 1,
+          "RBI": 3
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1953,
+          "H": 37,
+          "HR": 13,
+          "RBI": 34
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1954,
+          "H": 133,
+          "HR": 29,
+          "RBI": 89
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1955,
+          "H": 114,
+          "HR": 28,
+          "RBI": 83
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1956,
+          "H": 138,
+          "HR": 24,
+          "RBI": 82
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1957,
+          "H": 163,
+          "HR": 38,
+          "RBI": 87
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1958,
+          "H": 135,
+          "HR": 26,
+          "RBI": 85
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1959,
+          "H": 69,
+          "HR": 10,
+          "RBI": 43
+        },
+        {
+          "teamID": "BOS",
+          "yearID": 1960,
+          "H": 98,
+          "HR": 29,
+          "RBI": 72
+        }
+      ]
+    },
+    {
+      "people": {
+        "playerID": "willitr01",
+        "nameLast": "Williams",
+        "nameFirst": "Trevor",
+        "birthCity": "San Diego"
+      },
+      "appearances": [
+        {
+          "G_all": 7,
+          "teamID": "PIT",
+          "yearID": 2016
+        },
+        {
+          "G_all": 31,
+          "teamID": "PIT",
+          "yearID": 2017
+        }
+      ],
+      "batting": [
+        {
+          "teamID": "PIT",
+          "yearID": 2016,
+          "H": 0,
+          "HR": 0,
+          "RBI": 1
+        },
+        {
+          "teamID": "PIT",
+          "yearID": 2017,
+          "H": 2,
+          "HR": 0,
+          "RBI": 0
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://127.0.0.1:5000/api/lahman2017/people?children=appearances,batting&fields=people.playerID,people.nameLast,people.nameFirst,people.birthCity,batting.teamID,batting.yearID,batting.H,batting.HR,batting.RBI,appearances.G_all,appearances.teamID,appearances.yearID&people.nameLast=Williams&people.birthCity=San Diego"
+    }
+  ]
+}
+*************TEST SIX COMPELX QUERY TEST 2 SAME RESULT AS PIAZZA **************
+URL GIVEN =http://127.0.0.1:5000/api/lahman2017/people?children=appearances,batting&fields=people.playerID,people.nameLast,people.nameFirst,people.birthCity,batting.teamID,batting.yearID,batting.H,batting.HR,batting.RBI,appearances.G_all,appearances.teamID,appearances.yearID&people.nameLast=Williams&batting.yearID=1960&appearances.yearID=1960
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "1390",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:47 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "people": {
+        "playerID": "willibi01",
+        "nameLast": "Williams",
+        "nameFirst": "Billy",
+        "birthCity": "Whistler"
+      },
+      "appearances": [
+        {
+          "G_all": 12,
+          "teamID": "CHN",
+          "yearID": 1960
+        }
+      ],
+      "batting": [
+        {
+          "teamID": "CHN",
+          "yearID": 1960,
+          "H": 13,
+          "HR": 2,
+          "RBI": 7
+        }
+      ]
+    },
+    {
+      "people": {
+        "playerID": "willidi02",
+        "nameLast": "Williams",
+        "nameFirst": "Dick",
+        "birthCity": "St. Louis"
+      },
+      "appearances": [
+        {
+          "G_all": 127,
+          "teamID": "KC1",
+          "yearID": 1960
+        }
+      ],
+      "batting": [
+        {
+          "teamID": "KC1",
+          "yearID": 1960,
+          "H": 121,
+          "HR": 12,
+          "RBI": 65
+        }
+      ]
+    },
+    {
+      "people": {
+        "playerID": "willist02",
+        "nameLast": "Williams",
+        "nameFirst": "Stan",
+        "birthCity": "Enfield"
+      },
+      "appearances": [
+        {
+          "G_all": 38,
+          "teamID": "LAN",
+          "yearID": 1960
+        }
+      ],
+      "batting": [
+        {
+          "teamID": "LAN",
+          "yearID": 1960,
+          "H": 9,
+          "HR": 2,
+          "RBI": 7
+        }
+      ]
+    },
+    {
+      "people": {
+        "playerID": "willite01",
+        "nameLast": "Williams",
+        "nameFirst": "Ted",
+        "birthCity": "San Diego"
+      },
+      "appearances": [
+        {
+          "G_all": 113,
+          "teamID": "BOS",
+          "yearID": 1960
+        }
+      ],
+      "batting": [
+        {
+          "teamID": "BOS",
+          "yearID": 1960,
+          "H": 98,
+          "HR": 29,
+          "RBI": 72
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://127.0.0.1:5000/api/lahman2017/people?children=appearances,batting&fields=people.playerID,people.nameLast,people.nameFirst,people.birthCity,batting.teamID,batting.yearID,batting.H,batting.HR,batting.RBI,appearances.G_all,appearances.teamID,appearances.yearID&people.nameLast=Williams&batting.yearID=1960&appearances.yearID=1960"
+    }
+  ]
+}
+*************TEST SEVEN QUERY BY KEY AND SUBRESOURCE SAME AS HW DOCUMENTATION**************
+URL GIVEN =http://127.0.0.1:5000/api/lahman2017/people/willite01/batting?fields=ab,h&yearid=1960
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "157",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "ab": 310,
+      "h": 98
+    }
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://127.0.0.1:5000/api/lahman2017/people/willite01/batting?fields=ab,h&yearid=1960"
+    }
+  ]
+}
+*************TEST EIGHT CREATE SAME AS PIAZZA**************
+
+test_create_manager: test 1, manager = \, {
+  "id": "ok1",
+  "last_name": "Obiwan",
+  "first_name": "Kenobi",
+  "email": "ow@jedi.org"
+}
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_manager
+Printing a response.
+HTTP status code:  201
+Response headers: 
+ {
+  "Content-Type": "text/plain; charset=utf-8",
+  "Content-Length": "7",
+  "Location": "http://127.0.0.1:5000/api/classiccars/fantasy_manager/ok1",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+Text body: 
+ CREATED
+
+test_create_manager: test 2 retrieving created manager.
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_manager/ok1
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "96",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "id": "ok1",
+      "first_name": "Kenobi",
+      "last_name": "Obiwan",
+      "email": "ow@jedi.org"
+    }
+  ]
+}
+
+test_create_manager: test 1, creating duplicate = \, {
+  "id": "ok1",
+  "last_name": "Obiwan",
+  "first_name": "Kenobi",
+  "email": "ow@jedi.org"
+}
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_manager
+Printing a response.
+HTTP status code:  422
+Response headers: 
+ {
+  "Content-Type": "text/plain; charset=utf-8",
+  "Content-Length": "60",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+Text body: 
+ STATUS 422 (1062, "Duplicate entry 'ok1' for key 'PRIMARY'")
+*************TEST NINE SIMPLE UPDATE TEST SAME AS PIAZZA **************
+
+test_update_manager: test 1, get manager with id = ls1
+test_update_manager: get result = 
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_manager/ls1
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "108",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "id": "ls1",
+      "first_name": "Testing",
+      "last_name": "Minion",
+      "email": "spareme@fromthishw.com"
+    }
+  ]
+}
+
+test_update_manager: test 2, updating data with new value = 
+{"last_name": "Darth", "first_name": "Vader", "email": "dv@deathstar.navy.mil"}
+
+test_update_manager: test 2, updating response =  
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_manager/ls1
+Printing a response.
+HTTP status code:  201
+Response headers: 
+ {
+  "Content-Type": "text/plain; charset=utf-8",
+  "Content-Length": "7",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+Text body: 
+ UPDATED
+
+test_update_manager: test 3, get manager with id = ls1
+test_update_manager: get result = 
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_manager/ls1
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "104",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "id": "ls1",
+      "first_name": "Vader",
+      "last_name": "Darth",
+      "email": "dv@deathstar.navy.mil"
+    }
+  ]
+}
+*************TEST TEN GET BY PATH SAME AS PIAZZA **************
+
+test_get_by_path: test 1
+team_id =  27
+sub_resource =  fantasy_manager
+Path =  http://127.0.0.1:5000/api/classiccars/fantasy_team/27/fantasy_manager
+test_get_by_path: path_url = 
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_team/27/fantasy_manager
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "213",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:48 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "id": "ls1",
+      "first_name": "Vader",
+      "last_name": "Darth",
+      "email": "dv@deathstar.navy.mil"
+    }
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://127.0.0.1:5000/api/classiccars/fantasy_team/27/fantasy_manager"
+    }
+  ]
+}
+*************TEST ELEVEN CREATE RELATED SAME AS PIAZZA **************
+
+test_create_related: test 1
+Path =  http://127.0.0.1:5000/api/classiccars/fantasy_manager/ls1/fantasy_team
+Body = 
+ {
+  "team_name": "Braves",
+  "team_id": 11
+}
+test_create_related response = 
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_manager/ls1/fantasy_team
+Printing a response.
+HTTP status code:  201
+Response headers: 
+ {
+  "Content-Type": "text/plain; charset=utf-8",
+  "Content-Length": "7",
+  "Location": "http://127.0.0.1:5000/api/classiccars/fantasy_team/11",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:53 GMT"
+}
+Text body: 
+ CREATED
+Got location =  http://127.0.0.1:5000/api/classiccars/fantasy_team/11
+test_create_related, getting new resource
+URL GIVEN =http://127.0.0.1:5000/api/classiccars/fantasy_team/11
+Printing a response.
+HTTP status code:  200
+Response headers: 
+ {
+  "Content-Type": "application/json",
+  "Content-Length": "71",
+  "Server": "Werkzeug/0.14.1 Python/3.7.1",
+  "Date": "Mon, 04 Mar 2019 04:33:53 GMT"
+}
+JSON body: 
+ {
+  "data": [
+    {
+      "team_id": 11,
+      "team_name": "Braves",
+      "manager_id": "ls1"
+    }
+  ]
+}

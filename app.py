@@ -1,3 +1,4 @@
+##James Lee - jl5241
 from flask import Flask
 from aeneid.dbservices import dataservice as ds
 from flask import Flask
@@ -215,30 +216,46 @@ def handle_resource(dbname, resource_name, primary_key):
             else:    
                 new_r = request.get_json()
                 result = ds.update_by_key(resource, key_columns, new_r)
-                if result and result == 1:
+                if (not result is None) and (result == 1):
                     resp = Response("UPDATED",status=201,mimetype="text/plain")
+                if (not result is None) and (result == 0):
+                    resp = Response("UPDATED BUT YOU ENTERED THE SAME VALUES. NONE CHANGED ",status=201,mimetype="text/plain")
 
         else: 
             result = Response("Unimplmented method type please try GET, PUT, or DELETE", status=500,mimetype="text/plain")
             return result 
 
     except Exception as e:
-        # We need a better overall approach to generating correct errors.
+        resp = Response("STATUS 422 "+str(e), status=422, mimetype="text/plain")
         utils.debug_message("Something awlful happened, e = ", e)
 
     return resp
 
 @app.route('/api/<dbname>/<resource_name>/<primary_key>/<subresource_name>',methods=['GET','POST'])
-def handle_collection(dbname, resource_name,primary_key,subresource_name):
+def handle_path_resource(dbname, resource_name,primary_key,subresource_name):
 
     resp = Response("Internal server error", status=500, mimetype="text/plain")
 
     try:
         resource = dbname + "." + resource_name
+        subresource= dbname + "." + subresource_name 
+        ##make args mutable 
+        request.args = request.args.copy()
+        actual_key = ds.get_key(resource)
+        keys_input = primary_key.split('_')
+        if len(keys_input) != len(actual_key):
+            raise ValueError("Wrong key length please try "+actual_key)
+        
+        benchmark_row = ds.get_by_primary_key(resource,keys_input)
+        
 
         if request.method == 'GET':
             # Form the compound resource names dbschema.table_name
-            
+
+            foreign_key = ds.get_foreign_key(resource,subresource)
+            for k,v in foreign_key.items():
+                map = v['MAP'][0]
+                request.args[map['REFERENCED_COLUMN_NAME']] = benchmark_row[0][map['COLUMN_NAME']]
 
             # Get the field list if it exists.
             field_list = request.args.get('fields', None)
@@ -263,7 +280,7 @@ def handle_collection(dbname, resource_name,primary_key,subresource_name):
                     tmp[k] = v
             
             # Find by template
-            result = ds.get_by_template(resource, tmp, field_list=field_list, limit=limit, offset=offset,order_by = order_by,children = children)
+            result = ds.get_by_template(subresource, tmp, field_list=field_list, limit=limit, offset=offset,order_by = order_by,children = children)
             
             if result:
                 result = {"data": result}
@@ -274,19 +291,27 @@ def handle_collection(dbname, resource_name,primary_key,subresource_name):
                 resp = Response("Not found", status=404, mimetype="text/plain")
         
         elif request.method =='POST':
+
+            actual_key = ds.get_key(resource)
+            keys_input = primary_key.split('_')
+            if len(keys_input) != len(actual_key):
+                raise ValueError("Wrong key length please try "+actual_key)
+
             new_r = request.get_json()
-            foreign_key = ds.get_foreign_key
+
+            foreign_key = ds.get_foreign_key(resource,subresource)
             for k,v in foreign_key.items():
-                name = v['COLUMN NAME']
+                map = v['MAP'][0]
+                new_r[map['COLUMN_NAME']] = benchmark_row[0][map['REFERENCED_COLUMN_NAME']]
             ####Might need to handle multiple keys here
-            k=result = ds.create(resource, new_r)
+            k=result = ds.create(subresource, new_r)
             if k:
-                location = get_location(dbname, resource_name, k )
+                location = get_location(dbname, subresource_name, k )
                 resp = Response("CREATED",status=201,mimetype="text/plain")
                 resp.headers['Location'] = location
 
     except Exception as e:
-        resp = Response(e, status=500, mimetype="text/plain")
+        resp = Response("STATUS 422 "+str(e), status=422, mimetype="text/plain")
         utils.debug_message("Something awlful happened, e = ", e)
 
     return resp
@@ -348,7 +373,7 @@ def handle_collection(dbname, resource_name):
                 resp.headers['Location'] = location
 
     except Exception as e:
-        resp = Response(e, status=500, mimetype="text/plain")
+        resp = Response("STATUS 422 "+ str(e), status=422, mimetype="text/plain")
         utils.debug_message("Something awlful happened, e = ", e)
 
     return resp
@@ -356,7 +381,7 @@ def handle_collection(dbname, resource_name):
 def get_location(db_name, resource_name ,k):
     ks = [str(kk) for kk in k.values()]
     ks = "_".join(ks)
-    result = "/api" + db_name + "/" +resource_name + "/" + ks
+    result = "/api/" + db_name + "/" +resource_name + "/" + ks
     return result 
 
 if __name__ == '__main__':
